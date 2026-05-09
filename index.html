@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>母亲节快乐</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #matrixCanvas {
+            opacity: 1;
+        }
+
+        #heartCanvas {
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        #heartCanvas.show {
+            opacity: 1;
+        }
+
+        /* 开场祝福语区域 */
+        .intro-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 1.5s ease-out;
+        }
+
+        .intro-container.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .blessing-text {
+            font-size: 72px;
+            color: #ff69b4;
+            text-shadow:
+                0 0 25px #ff69b4,
+                0 0 50px #ff1493,
+                0 0 75px #ff0080;
+            opacity: 0;
+            text-align: center;
+            letter-spacing: 15px;
+            font-weight: bold;
+        }
+
+        .blessing-text.show {
+            opacity: 1;
+            animation: textGlow 1s ease-in-out;
+        }
+
+        .blessing-text.fade {
+            opacity: 0;
+            animation: textFade 0.5s ease-out;
+        }
+
+        @keyframes textGlow {
+            0% {
+                opacity: 0;
+                transform: scale(0.6);
+                filter: blur(20px);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.1);
+                filter: blur(0);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes textFade {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(1.4);
+                filter: blur(15px);
+            }
+        }
+
+        /* 主文字区域 */
+        .text-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .text-container.show {
+            opacity: 1;
+        }
+
+        .main-text {
+            font-size: 42px;
+            color: #ff69b4;
+            text-shadow:
+                0 0 20px #ff69b4,
+                0 0 40px #ff1493,
+                0 0 60px #ff0080;
+            letter-spacing: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+            font-weight: bold;
+        }
+
+        .hearts {
+            font-size: 36px;
+            margin: 0 20px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 矩阵数字雨 -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- 爱心粒子 -->
+    <canvas id="heartCanvas"></canvas>
+
+    <!-- 开场祝福语容器 -->
+    <div class="intro-container" id="introContainer">
+        <div class="blessing-text" id="blessingText"></div>
+    </div>
+
+    <!-- 主文字 -->
+    <div class="text-container" id="textContainer">
+        <span class="hearts">💕</span>
+        <span class="main-text">祝您母亲节快乐</span>
+        <span class="hearts">💕</span>
+    </div>
+
+    <script>
+        // DOM元素
+        const introContainer = document.getElementById('introContainer');
+        const blessingText = document.getElementById('blessingText');
+        const textContainer = document.getElementById('textContainer');
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const heartCanvas = document.getElementById('heartCanvas');
+
+        const matrixCtx = matrixCanvas.getContext('2d');
+        const heartCtx = heartCanvas.getContext('2d');
+
+        let width, height;
+        let showHearts = false;
+
+        // 祝福语列表
+        const blessings = [
+            '妈妈，您辛苦了',
+            '愿您永远健康快乐',
+            '您是我心中最美的天使',
+            '妈妈，节日快乐',
+            '有您真好',
+            '妈妈，我爱您',
+            '打牌天天赢'
+        ];
+
+        let currentIndex = 0;
+
+        // 矩阵配置
+        const chars = 'EIOVY01';
+        const fontSize = 16;
+        let columns = [];
+        let drops = [];
+
+        // 爱心粒子
+        let heartParticles = [];
+        let heartOutline = [];
+
+        function resize() {
+            width = matrixCanvas.width = heartCanvas.width = window.innerWidth;
+            height = matrixCanvas.height = heartCanvas.height = window.innerHeight;
+            initMatrix();
+            generateHeartOutline();
+        }
+
+        function initMatrix() {
+            columns = [];
+            drops = [];
+            const colCount = Math.floor(width / fontSize);
+            for (let i = 0; i < colCount; i++) {
+                columns.push(i * fontSize);
+                drops.push(Math.random() * -200);
+            }
+        }
+
+        function generateHeartOutline() {
+            heartOutline = [];
+            const scale = Math.min(width, height) / 500;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            for (let t = 0; t < Math.PI * 2; t += 0.02) {
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                heartOutline.push({
+                    x: centerX + x * scale * 10,
+                    y: centerY + y * scale * 10
+                });
+            }
+        }
+
+        function drawMatrix() {
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            matrixCtx.fillRect(0, 0, width, height);
+
+            matrixCtx.font = `${fontSize}px monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                const x = columns[i];
+                const y = drops[i] * fontSize;
+
+                const gradient = matrixCtx.createLinearGradient(x, y - 150, x, y);
+                gradient.addColorStop(0, 'rgba(0, 255, 150, 0)');
+                gradient.addColorStop(0.7, 'rgba(0, 200, 100, 0.3)');
+                gradient.addColorStop(1, 'rgba(0, 180, 80, 0.8)');
+
+                matrixCtx.fillStyle = gradient;
+                matrixCtx.fillText(char, x, y);
+
+                if (y > height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        class HeartParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const idx = Math.floor(Math.random() * heartOutline.length);
+                const basePoint = heartOutline[idx];
+                this.x = basePoint.x + (Math.random() - 0.5) * 40;
+                this.y = basePoint.y + (Math.random() - 0.5) * 40;
+                this.size = Math.random() * 5 + 2;
+                this.vx = (Math.random() - 0.5) * 0.2;
+                this.vy = (Math.random() - 0.5) * 0.2;
+                this.life = 0;
+                this.maxLife = Math.random() * 80 + 40;
+                this.opacity = Math.random() * 0.5 + 0.3;
+                this.color = `hsl(${Math.random() * 30 + 320}, 100%, ${Math.random() * 20 + 60}%)`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life++;
+
+                if (this.life > this.maxLife) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                heartCtx.save();
+                heartCtx.globalAlpha = this.opacity;
+                heartCtx.fillStyle = this.color;
+
+                heartCtx.beginPath();
+                heartCtx.moveTo(this.x, this.y);
+                heartCtx.bezierCurveTo(
+                    this.x + this.size, this.y - this.size,
+                    this.x + this.size * 2, this.y,
+                    this.x, this.y + this.size * 1.5
+                );
+                heartCtx.bezierCurveTo(
+                    this.x - this.size * 2, this.y,
+                    this.x - this.size, this.y - this.size,
+                    this.x, this.y
+                );
+                heartCtx.fill();
+
+                heartCtx.shadowColor = this.color;
+                heartCtx.shadowBlur = 10;
+                heartCtx.fill();
+
+                heartCtx.restore();
+            }
+        }
+
+        function initHeartParticles() {
+            heartParticles = [];
+            for (let i = 0; i < 300; i++) {
+                heartParticles.push(new HeartParticle());
+            }
+        }
+
+        function drawHearts() {
+            heartCtx.clearRect(0, 0, width, height);
+
+            if (showHearts) {
+                heartParticles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+            }
+        }
+
+        function animate() {
+            drawMatrix();
+            drawHearts();
+            requestAnimationFrame(animate);
+        }
+
+        // 显示当前祝福语
+        function showBlessing() {
+            if (currentIndex < blessings.length) {
+                blessingText.textContent = blessings[currentIndex];
+                blessingText.classList.remove('show', 'fade');
+                void blessingText.offsetWidth;
+                blessingText.classList.add('show');
+
+                setTimeout(() => {
+                    blessingText.classList.remove('show');
+                    blessingText.classList.add('fade');
+
+                    setTimeout(() => {
+                        currentIndex++;
+                        showBlessing();
+                    }, 500);
+                }, 1500);
+            } else {
+                // 所有祝福语显示完毕
+                setTimeout(() => {
+                    introContainer.classList.add('fade-out');
+
+                    // 显示爱心和主文字
+                    setTimeout(() => {
+                        showHearts = true;
+                        heartCanvas.classList.add('show');
+                        textContainer.classList.add('show');
+                    }, 500);
+                }, 500);
+            }
+        }
+
+        window.addEventListener('resize', resize);
+
+        resize();
+        initHeartParticles();
+        animate();
+
+        setTimeout(showBlessing, 500);
+    </script>
+</body>
+
+</html>
