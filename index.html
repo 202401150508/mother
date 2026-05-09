@@ -3,15 +3,21 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>母亲节快乐</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
             background: #000;
             overflow: hidden;
-            font-family: 'Microsoft YaHei', sans-serif;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
         }
 
         canvas {
@@ -33,7 +39,6 @@
             opacity: 1;
         }
 
-        /* 开场祝福语区域 */
         .intro-container {
             position: absolute;
             top: 0;
@@ -54,7 +59,8 @@
         }
 
         .blessing-text {
-            font-size: 72px;
+            /* 使用vw单位实现响应式字体大小 */
+            font-size: clamp(32px, 10vw, 72px);
             color: #ff69b4;
             text-shadow:
                 0 0 25px #ff69b4,
@@ -62,8 +68,10 @@
                 0 0 75px #ff0080;
             opacity: 0;
             text-align: center;
-            letter-spacing: 15px;
+            letter-spacing: clamp(5px, 2vw, 15px);
             font-weight: bold;
+            padding: 0 20px;
+            word-break: break-word;
         }
 
         .blessing-text.show {
@@ -109,7 +117,6 @@
             }
         }
 
-        /* 主文字区域 */
         .text-container {
             position: absolute;
             top: 50%;
@@ -119,6 +126,7 @@
             z-index: 10;
             opacity: 0;
             transition: opacity 1.5s ease-in-out;
+            padding: 0 20px;
         }
 
         .text-container.show {
@@ -126,20 +134,22 @@
         }
 
         .main-text {
-            font-size: 42px;
+            /* 响应式字体大小 */
+            font-size: clamp(20px, 5vw, 42px);
             color: #ff69b4;
             text-shadow:
                 0 0 20px #ff69b4,
                 0 0 40px #ff1493,
                 0 0 60px #ff0080;
-            letter-spacing: 12px;
+            letter-spacing: clamp(3px, 1vw, 12px);
             animation: pulse 1.5s ease-in-out infinite;
             font-weight: bold;
+            word-break: break-word;
         }
 
         .hearts {
-            font-size: 36px;
-            margin: 0 20px;
+            font-size: clamp(16px, 4vw, 36px);
+            margin: 0 clamp(5px, 2vw, 20px);
         }
 
         @keyframes pulse {
@@ -153,22 +163,36 @@
                 opacity: 1;
             }
         }
+
+        /* 移动端优化 */
+        @media screen and (max-width: 768px) {
+            body {
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+
+        /* 横屏优化 */
+        @media screen and (orientation: landscape) and (max-height: 500px) {
+            .blessing-text {
+                font-size: clamp(24px, 6vh, 48px);
+            }
+
+            .main-text {
+                font-size: clamp(16px, 3vh, 28px);
+            }
+        }
     </style>
 </head>
 
 <body>
-    <!-- 矩阵数字雨 -->
     <canvas id="matrixCanvas"></canvas>
-
-    <!-- 爱心粒子 -->
     <canvas id="heartCanvas"></canvas>
 
-    <!-- 开场祝福语容器 -->
     <div class="intro-container" id="introContainer">
         <div class="blessing-text" id="blessingText"></div>
     </div>
 
-    <!-- 主文字 -->
     <div class="text-container" id="textContainer">
         <span class="hearts">💕</span>
         <span class="main-text">祝您母亲节快乐</span>
@@ -176,7 +200,6 @@
     </div>
 
     <script>
-        // DOM元素
         const introContainer = document.getElementById('introContainer');
         const blessingText = document.getElementById('blessingText');
         const textContainer = document.getElementById('textContainer');
@@ -189,7 +212,6 @@
         let width, height;
         let showHearts = false;
 
-        // 祝福语列表
         const blessings = [
             '妈妈，您辛苦了',
             '愿您永远健康快乐',
@@ -202,13 +224,11 @@
 
         let currentIndex = 0;
 
-        // 矩阵配置
         const chars = 'EIOVY01';
         const fontSize = 16;
         let columns = [];
         let drops = [];
 
-        // 爱心粒子
         let heartParticles = [];
         let heartOutline = [];
 
@@ -351,7 +371,6 @@
             requestAnimationFrame(animate);
         }
 
-        // 显示当前祝福语
         function showBlessing() {
             if (currentIndex < blessings.length) {
                 blessingText.textContent = blessings[currentIndex];
@@ -369,11 +388,9 @@
                     }, 500);
                 }, 1500);
             } else {
-                // 所有祝福语显示完毕
                 setTimeout(() => {
                     introContainer.classList.add('fade-out');
 
-                    // 显示爱心和主文字
                     setTimeout(() => {
                         showHearts = true;
                         heartCanvas.classList.add('show');
